@@ -35,3 +35,14 @@ npm-debug.log*
 # Temporary files
 tmp/
 .tmp/
+
+# Foundry artifacts
+chain/out/
+chain/cache/
+
+# Local demo artifacts
+demo-output.txt
+
+# Foundry build artifacts (extra safety)
+out/
+cache/

@@ -101,7 +101,19 @@ export async function buildRelease(
   // Sort files by path for determinism
   fileEntries.sort((a, b) => a.path.localeCompare(b.path));
 
-  // Build manifest (without root_hash first)
+  // Build deterministic payload (ONLY these fields are hashed)
+  // This ensures identical governance content always produces identical root_hash
+  const deterministicPayload = {
+    manifest_version: "0.5",
+    release_version: version,
+    files: fileEntries,
+  };
+
+  // Compute root_hash from ONLY deterministic fields
+  // Timestamps are explicitly NOT part of the commitment
+  const rootHash = computeCanonicalHash(deterministicPayload as Record<string, unknown>, []);
+
+  // Non-deterministic metadata (stored but not hashed)
   const builderInfo: BuilderInfo = {
     cli_version: CLI_VERSION,
     git_commit: await getGitCommit(governanceDir),
@@ -116,9 +128,6 @@ export async function buildRelease(
     builder_info: builderInfo,
     files: fileEntries,
   };
-
-  // Compute root_hash over the manifest
-  const rootHash = computeCanonicalHash(manifest as Record<string, unknown>, []);
 
   const fullManifest: ReleaseManifest = {
     ...manifest,
@@ -308,17 +317,14 @@ export async function verifyRelease(
   const manifestContent = await fs.readFile(manifestPath, "utf8");
   const manifest = JSON.parse(manifestContent) as SignedRelease;
 
-  // Verify root_hash
-  const computedRootHash = computeCanonicalHash(
-    {
-      manifest_version: manifest.manifest_version,
-      release_version: manifest.release_version,
-      created_at: manifest.created_at,
-      builder_info: manifest.builder_info,
-      files: manifest.files,
-    },
-    []
-  );
+  // Verify root_hash using ONLY deterministic fields
+  // Must match the exact same payload structure used in buildRelease
+  const deterministicPayload = {
+    manifest_version: manifest.manifest_version,
+    release_version: manifest.release_version,
+    files: manifest.files,
+  };
+  const computedRootHash = computeCanonicalHash(deterministicPayload as Record<string, unknown>, []);
 
   if (computedRootHash.toLowerCase() !== manifest.root_hash.toLowerCase()) {
     errors.push(

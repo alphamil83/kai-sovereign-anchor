@@ -163,6 +163,51 @@ When describing KAI, use these precise statements:
 **v0.1β Response**: Release key offline + multi-sig recommended.
 **Future**: On-chain governance with time-lock.
 
+## Deterministic Hashing
+
+### Release Root Hash Computation
+
+The `root_hash` is computed from **only deterministic fields** to ensure identical governance content always produces identical hashes, regardless of when or where the build occurs.
+
+**Fields INCLUDED in root_hash:**
+```typescript
+{
+  manifest_version: "0.5",      // Protocol version
+  release_version: "1.0.0",    // Release semver
+  files: [                      // Sorted by path
+    { path: "...", sha256: "...", size: N }
+  ]
+}
+```
+
+**Fields EXCLUDED from root_hash:**
+- `created_at` - Build timestamp
+- `builder_info.built_at` - Same
+- `builder_info.cli_version` - Tool version may differ
+- `builder_info.git_commit` - Informational only
+- `builder_info.node_version` - Runtime version
+
+### Why This Matters
+
+| Scenario | Timestamps in Hash | Timestamps Excluded |
+|----------|-------------------|---------------------|
+| Rebuild same content | ❌ Different hash | ✅ Same hash |
+| Verify on different machine | ❌ Must trust original | ✅ Can recompute |
+| Audit governance | ❌ Cannot verify | ✅ Deterministic |
+
+### Verification Test
+
+```bash
+# Build twice with different timestamps
+kai build -d ./governance -v 1.0.0 -o /tmp/manifest1.json
+sleep 1
+kai build -d ./governance -v 1.0.0 -o /tmp/manifest2.json
+
+# Root hashes MUST match (timestamps differ but are not hashed)
+jq .root_hash /tmp/manifest1.json
+jq .root_hash /tmp/manifest2.json
+```
+
 ## Verification Commands
 
 ```bash

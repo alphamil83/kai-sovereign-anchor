@@ -89,6 +89,21 @@ interface DemoContext {
   chainConfig: ChainConfig;
 }
 
+interface DemoArtifacts {
+  demoDate: string;
+  cliVersion: string;
+  chainId: number;
+  contractAddress: string;
+  releaseRootHash: string;
+  releaseAnchorTx: string;
+  releaseAnchorBlock: number;
+  signerAddress: string;
+  batchMerkleRoot: string;
+  batchAnchorTx: string;
+  batchAnchorBlock: number;
+  verificationPassed: boolean;
+}
+
 async function setupDemo(useLocal: boolean): Promise<DemoContext> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kai-realchain-"));
   const governanceDir = path.join(tmpDir, "governance");
@@ -160,14 +175,21 @@ async function cleanupDemo(ctx: DemoContext): Promise<void> {
 // Real Chain Demo
 // ============================================================================
 
-async function runRealChainDemo(useLocal: boolean): Promise<void> {
+async function runRealChainDemo(useLocal: boolean, proofOutPath?: string): Promise<void> {
   console.log();
   console.log(colors.bold("╔══════════════════════════════════════════════════════════════╗"));
-  console.log(colors.bold("║     KAI v0.5 - REAL CHAIN Demo                               ║"));
+  console.log(colors.bold("║     KAI v0.1.0-beta - REAL CHAIN Demo                        ║"));
   console.log(colors.bold("║     This is NOT simulated - actual blockchain transactions   ║"));
   console.log(colors.bold("╚══════════════════════════════════════════════════════════════╝"));
 
   const ctx = await setupDemo(useLocal);
+
+  // Track artifacts for proof output
+  const artifacts: Partial<DemoArtifacts> = {
+    demoDate: new Date().toISOString(),
+    cliVersion: "@kai/cli@0.1.0-beta",
+    contractAddress: ctx.chainConfig.contractAddress,
+  };
 
   try {
     // Validate config
@@ -205,6 +227,7 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
 
     check(`Connected! Chain ID: ${connStatus.chainId}`);
     check(`Existing releases: ${connStatus.releaseCount}`);
+    artifacts.chainId = connStatus.chainId!;
 
     // STEP 1: Build and sign release
     header("STEP 1: Build and Sign Release");
@@ -215,6 +238,8 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
 
     const signedRelease = await signRelease(manifest, ctx.chainConfig.privateKey, 1);
     check(`Signed by: ${signedRelease.signatures[0].signer_address}`);
+    artifacts.releaseRootHash = signedRelease.root_hash;
+    artifacts.signerAddress = signedRelease.signatures[0].signer_address;
 
     const releasePath = path.join(ctx.releasesDir, "v1.0.0.json");
     await saveManifest(signedRelease, releasePath);
@@ -228,6 +253,8 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
     if (existingCheck.registered) {
       info("Release already anchored on-chain");
       check(`Block: ${existingCheck.blockNumber}`);
+      artifacts.releaseAnchorTx = "(already anchored)";
+      artifacts.releaseAnchorBlock = existingCheck.blockNumber!;
     } else {
       info("Submitting transaction...");
 
@@ -243,6 +270,8 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
       console.log(colors.green(`  │ TX HASH: ${anchorResult.txHash.slice(0, 42)}...`));
       console.log(colors.green(`  │ BLOCK:   ${anchorResult.blockNumber}`));
       console.log(colors.green("  └─────────────────────────────────────────────────────────┘"));
+      artifacts.releaseAnchorTx = anchorResult.txHash;
+      artifacts.releaseAnchorBlock = anchorResult.blockNumber;
     }
 
     // STEP 3: Verify on-chain
@@ -301,25 +330,41 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
     console.log(colors.green(`  │ BATCH TX: ${batchResult.txHash.slice(0, 42)}...`));
     console.log(colors.green(`  │ BLOCK:    ${batchResult.blockNumber}`));
     console.log(colors.green("  └─────────────────────────────────────────────────────────┘"));
+    artifacts.batchMerkleRoot = batch.merkle_root;
+    artifacts.batchAnchorTx = batchResult.txHash;
+    artifacts.batchAnchorBlock = batchResult.blockNumber;
 
     // STEP 5: kai verify-live equivalent
     header("STEP 5: Live Verification (kai verify-live)");
 
-    // Rebuild from governance and compare
-    const freshManifest = await buildRelease(ctx.governanceDir, "1.0.0");
-    const localHash = freshManifest.root_hash;
+    // Rebuild manifest from governance files to prove they haven't changed.
+    // Thanks to deterministic hashing (timestamps excluded), rebuild produces identical root_hash.
+    const rebuiltManifest = await buildRelease(ctx.governanceDir, "1.0.0");
+    const localHash = rebuiltManifest.root_hash;
+    let verificationPassed = false;
 
-    check(`Local governance hash: ${localHash.slice(0, 24)}...`);
+    check(`Rebuilt manifest hash: ${localHash.slice(0, 24)}...`);
+
+    // Verify rebuilt hash matches the signed release
+    if (localHash !== signedRelease.root_hash) {
+      fail(`CRITICAL: Rebuilt hash doesn't match signed release!`);
+      console.log(colors.red(`  Signed:  ${signedRelease.root_hash}`));
+      console.log(colors.red(`  Rebuilt: ${localHash}`));
+      process.exitCode = 1;
+      return;
+    }
+    check("Rebuilt hash matches signed release (deterministic hashing works!)");
 
     const liveVerify = await verifyReleaseOnChain(ctx.chainConfig, localHash);
 
     if (liveVerify.registered && !liveVerify.revoked) {
+      verificationPassed = true;
       console.log();
       console.log(colors.green("  ╔════════════════════════════════════════════════════════════╗"));
       console.log(colors.green("  ║                                                            ║"));
       console.log(colors.green("  ║   ✓ RUNNING VERIFIED RELEASE v1.0.0                       ║"));
       console.log(colors.green("  ║                                                            ║"));
-      console.log(colors.green("  ║   Local governance matches on-chain anchor                 ║"));
+      console.log(colors.green("  ║   Local manifest matches on-chain anchor                   ║"));
       console.log(colors.green("  ║                                                            ║"));
       console.log(colors.green("  ╚════════════════════════════════════════════════════════════╝"));
       console.log();
@@ -327,25 +372,104 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
       console.log(colors.dim(`  On-chain block: ${liveVerify.blockNumber}`));
     } else {
       fail("Verification mismatch!");
+      console.log(colors.red(`  Local:    ${localHash}`));
+      console.log(colors.red(`  On-chain: ${liveVerify.registered ? "registered but revoked" : "not found"}`));
     }
+
+    // Track verification result
+    artifacts.verificationPassed = verificationPassed;
 
     // Summary
     header("DEMO COMPLETE - REAL CHAIN");
     console.log();
-    console.log(colors.green("  All steps completed with REAL blockchain transactions:"));
-    console.log(colors.dim("  1. ✓ Built and signed release"));
-    console.log(colors.dim("  2. ✓ Anchored release ON-CHAIN (real tx)"));
-    console.log(colors.dim("  3. ✓ Verified release on-chain"));
-    console.log(colors.dim("  4. ✓ Anchored receipt batch ON-CHAIN (real tx)"));
-    console.log(colors.dim("  5. ✓ Live verification passed"));
+    if (verificationPassed) {
+      console.log(colors.green("  All steps completed with REAL blockchain transactions:"));
+      console.log(colors.dim("  1. ✓ Built and signed release"));
+      console.log(colors.dim("  2. ✓ Anchored release ON-CHAIN (real tx)"));
+      console.log(colors.dim("  3. ✓ Verified release on-chain"));
+      console.log(colors.dim("  4. ✓ Anchored receipt batch ON-CHAIN (real tx)"));
+      console.log(colors.dim("  5. ✓ Live verification passed"));
+    } else {
+      console.log(colors.yellow("  Demo completed with verification mismatch:"));
+      console.log(colors.dim("  1. ✓ Built and signed release"));
+      console.log(colors.dim("  2. ✓ Anchored release ON-CHAIN (real tx)"));
+      console.log(colors.dim("  3. ✓ Verified release on-chain"));
+      console.log(colors.dim("  4. ✓ Anchored receipt batch ON-CHAIN (real tx)"));
+      console.log(colors.red("  5. ✗ Live verification FAILED"));
+      process.exitCode = 1;
+    }
     console.log();
     console.log(colors.cyan("  This is KAI: verifiable governance with on-chain proof."));
     console.log(colors.cyan("  \"Trust is an artifact\" - and now you have the artifacts."));
     console.log();
 
+    // Write proof file if requested
+    if (proofOutPath && verificationPassed) {
+      const proofContent = generateProofMarkdown(artifacts as DemoArtifacts);
+      await fs.writeFile(proofOutPath, proofContent);
+      console.log(colors.green(`  📄 Proof written to: ${proofOutPath}`));
+      console.log();
+    }
+
   } finally {
     await cleanupDemo(ctx);
   }
+}
+
+/**
+ * Generate proof markdown from artifacts
+ */
+function generateProofMarkdown(artifacts: DemoArtifacts): string {
+  return `# KAI v0.1.0-beta Demo Proof
+
+This document contains immutable proof of the KAI governance system functioning as designed.
+
+## Demo Environment
+
+| Property | Value |
+|----------|-------|
+| Demo Date | ${artifacts.demoDate} |
+| CLI Version | ${artifacts.cliVersion} |
+| Chain | Chain ID ${artifacts.chainId} |
+| Contract Address | \`${artifacts.contractAddress}\` |
+
+## Artifacts
+
+| Artifact | Value |
+|----------|-------|
+| Release root hash | \`${artifacts.releaseRootHash}\` |
+| Release anchor tx | \`${artifacts.releaseAnchorTx}\` |
+| Release anchor block | ${artifacts.releaseAnchorBlock} |
+| Signer address | \`${artifacts.signerAddress}\` |
+| Receipt batch Merkle root | \`${artifacts.batchMerkleRoot}\` |
+| Receipt batch anchor tx | \`${artifacts.batchAnchorTx}\` |
+| Receipt batch anchor block | ${artifacts.batchAnchorBlock} |
+
+## Verification Statement
+
+- **verify-live succeeded**: ${artifacts.verificationPassed ? "✅ YES" : "❌ NO"}
+- **Deterministic hashing**: Rebuilt hash matches signed release
+- Local manifest matches on-chain anchor at block ${artifacts.releaseAnchorBlock}
+
+## Verify-Live Output
+
+\`\`\`
+  ╔════════════════════════════════════════════════════════════╗
+  ║                                                            ║
+  ║   ✓ RUNNING VERIFIED RELEASE v1.0.0                       ║
+  ║                                                            ║
+  ║   Local manifest matches on-chain anchor                   ║
+  ║                                                            ║
+  ╚════════════════════════════════════════════════════════════╝
+
+  Root hash: ${artifacts.releaseRootHash}
+  On-chain block: ${artifacts.releaseAnchorBlock}
+\`\`\`
+
+---
+
+**Generated**: ${artifacts.demoDate}
+`;
 }
 
 // ============================================================================
@@ -354,7 +478,14 @@ async function runRealChainDemo(useLocal: boolean): Promise<void> {
 
 const useLocal = process.argv.includes("--local");
 
-runRealChainDemo(useLocal).catch(err => {
+// Parse --proof-out argument
+let proofOutPath: string | undefined;
+const proofOutIndex = process.argv.findIndex(arg => arg === "--proof-out");
+if (proofOutIndex !== -1 && process.argv[proofOutIndex + 1]) {
+  proofOutPath = process.argv[proofOutIndex + 1];
+}
+
+runRealChainDemo(useLocal, proofOutPath).catch(err => {
   console.error(colors.red("Demo failed:"), err.message);
   if (err.message.includes("could not detect network")) {
     console.log(colors.yellow("\nIs your RPC endpoint running?"));

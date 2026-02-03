@@ -290,13 +290,29 @@ describe("Determinism", () => {
     await fs.rm(DETERM_DIR, { recursive: true, force: true });
   });
 
-  it("should produce identical file hashes for same input", async () => {
-    // Build twice
+  it("should produce identical root_hash for same content (timestamps excluded)", async () => {
+    // Build twice - may have different timestamps
     const manifest1 = await buildRelease(DETERM_DIR, "1.0.0");
+
+    // Wait a moment to ensure different timestamp
+    await new Promise(resolve => setTimeout(resolve, 10));
+
     const manifest2 = await buildRelease(DETERM_DIR, "1.0.0");
 
-    // Files and their hashes should match exactly (timestamps differ, so root_hash differs)
+    // Timestamps SHOULD differ (proves the test is valid)
+    expect(manifest1.created_at).not.toBe(manifest2.created_at);
+    expect(manifest1.builder_info.built_at).not.toBe(manifest2.builder_info.built_at);
+
+    // But root_hash MUST be identical (timestamps are NOT part of the hash)
+    expect(manifest1.root_hash).toBe(manifest2.root_hash);
+
+    // Files should also match exactly
     expect(manifest1.files).toEqual(manifest2.files);
+  });
+
+  it("should produce identical file hashes for same input", async () => {
+    const manifest1 = await buildRelease(DETERM_DIR, "1.0.0");
+    const manifest2 = await buildRelease(DETERM_DIR, "1.0.0");
 
     // Verify each file hash matches
     for (let i = 0; i < manifest1.files.length; i++) {

@@ -40,6 +40,7 @@ kai verify-live -m manifest.json --rpc-url https://...
 | Human approval requirements | ✅ Enforced |
 | Replay attack prevention | ✅ Enforced |
 | Receipt chain integrity | ✅ Enforced |
+| Deterministic hashing | ✅ Enforced |
 | LLM text output filtering | ⚠️ Best-effort |
 | Memory zeroization | ⚠️ Best-effort (JS limitation) |
 

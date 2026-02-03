@@ -12,7 +12,8 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "kai": "tsx src/index.ts",
-    "demo": "tsx scripts/demo-runbook.ts"
+    "demo": "tsx scripts/demo-runbook.ts",
+    "demo:realchain": "tsx scripts/demo-runbook-realchain.ts --local"
   },
   "dependencies": {
     "commander": "^12.0.0",
