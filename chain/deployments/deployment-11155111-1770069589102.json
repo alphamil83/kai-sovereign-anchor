@@ -1,0 +1,18 @@
+{
+  "receiptVersion": "1.0",
+  "chainId": 11155111,
+  "network": "sepolia",
+  "contractAddress": "0x3974555c82b75F0022a7Ec33D03f7c22931BE3f7",
+  "contractName": "KAICharterRegistry",
+  "txHash": "0x0f4485192070053a2e9994a6899c6be1ba7f5ffd70e7fe5fc932358604092221",
+  "blockNumber": 10178589,
+  "deployedAt": "2026-02-02T21:59:49.102Z",
+  "owner": "0x626c04c92442a30A4855B595404CDC6df460Eebd",
+  "coreHash": "0x77cae9b45b3ddc681ff58450289daf9d401908e5c53855d4c416fe99f31fd76e",
+  "coreVersion": 1,
+  "bytecodeHash": "0x9923eaf574a18abbbf1992a39f6253bec9526ae81e3abb9fd0ae40abfe6f9092",
+  "solcVersion": "0.8.20",
+  "optimizerRuns": 200,
+  "gasUsed": "2007156",
+  "receiptHash": "0x1356540541c77c2ad78ef59fe44159f80f27afc0aad6230b425903f1c7225c18"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "kai-receipt-verifier",
+  "version": "1.0.0",
+  "description": "Verify KAI deployment receipts",
+  "type": "module",
+  "scripts": {
+    "verify": "npx tsx verify_receipt.ts"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^20.10.0"
+  }
+}
