@@ -69,6 +69,33 @@ contract KAICharterRegistry {
     uint256 public receiptNonce;
 
     // ═══════════════════════════════════════════════════════════════
+    // RELEASE REGISTRY (v0.5)
+    // ═══════════════════════════════════════════════════════════════
+
+    struct Release {
+        bytes32 rootHash;
+        string version;
+        address registrar;
+        uint256 blockNumber;
+        uint256 timestamp;
+        bool revoked;
+    }
+
+    struct ReceiptBatch {
+        bytes32 batchHash;
+        bytes32 releaseRootHash;
+        uint256 blockNumber;
+        uint256 timestamp;
+        uint256 receiptCount;
+    }
+
+    mapping(bytes32 => Release) public releases; // rootHash => Release
+    bytes32[] public releaseHashes; // All release root hashes
+
+    mapping(bytes32 => ReceiptBatch) public receiptBatches; // batchHash => ReceiptBatch
+    bytes32[] public batchHashes; // All batch hashes
+
+    // ═══════════════════════════════════════════════════════════════
     // EVENTS
     // ═══════════════════════════════════════════════════════════════
 
@@ -142,6 +169,29 @@ contract KAICharterRegistry {
         uint256 indexed receiptId,
         string action,
         bytes32 dataHash,
+        uint256 timestamp
+    );
+
+    // Release Registry Events (v0.5)
+    event ReleaseRegistered(
+        bytes32 indexed rootHash,
+        string version,
+        address indexed registrar,
+        uint256 blockNumber,
+        uint256 timestamp
+    );
+
+    event ReleaseRevoked(
+        bytes32 indexed rootHash,
+        string reason,
+        uint256 timestamp
+    );
+
+    event ReceiptBatchAnchored(
+        bytes32 indexed batchHash,
+        bytes32 indexed releaseRootHash,
+        uint256 receiptCount,
+        uint256 blockNumber,
         uint256 timestamp
     );
 
@@ -509,6 +559,155 @@ contract KAICharterRegistry {
             succession.successionTriggeredAt + succession.coolingPeriod,
             (block.timestamp - succession.lastActivity) / 1 days
         );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RELEASE REGISTRY (v0.5)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * @notice Register a new governance release
+     * @param _rootHash Root hash of the release manifest
+     * @param _version Semantic version string (e.g., "1.0.0")
+     */
+    function registerRelease(
+        bytes32 _rootHash,
+        string calldata _version
+    ) external onlyOwner successionNotActive {
+        require(_rootHash != bytes32(0), "Invalid root hash");
+        require(bytes(_version).length > 0, "Invalid version");
+        require(releases[_rootHash].blockNumber == 0, "Release already registered");
+
+        releases[_rootHash] = Release({
+            rootHash: _rootHash,
+            version: _version,
+            registrar: msg.sender,
+            blockNumber: block.number,
+            timestamp: block.timestamp,
+            revoked: false
+        });
+
+        releaseHashes.push(_rootHash);
+
+        emit ReleaseRegistered(_rootHash, _version, msg.sender, block.number, block.timestamp);
+        _logAudit("RELEASE_REGISTERED", _rootHash);
+    }
+
+    /**
+     * @notice Revoke a release (mark as invalid)
+     * @param _rootHash Root hash of release to revoke
+     * @param _reason Reason for revocation
+     */
+    function revokeRelease(
+        bytes32 _rootHash,
+        string calldata _reason
+    ) external onlyOwner {
+        require(releases[_rootHash].blockNumber > 0, "Release not found");
+        require(!releases[_rootHash].revoked, "Already revoked");
+
+        releases[_rootHash].revoked = true;
+
+        emit ReleaseRevoked(_rootHash, _reason, block.timestamp);
+        _logAudit("RELEASE_REVOKED", _rootHash);
+    }
+
+    /**
+     * @notice Anchor a batch of receipt hashes
+     * @param _batchHash Hash of the receipt batch (H(receipt1 || receipt2 || ...))
+     * @param _releaseRootHash Root hash of the governing release
+     * @param _receiptCount Number of receipts in the batch
+     */
+    function anchorReceiptBatch(
+        bytes32 _batchHash,
+        bytes32 _releaseRootHash,
+        uint256 _receiptCount
+    ) external onlyOwner {
+        require(_batchHash != bytes32(0), "Invalid batch hash");
+        require(receiptBatches[_batchHash].blockNumber == 0, "Batch already anchored");
+        // Note: We allow anchoring even if release is revoked (for audit trail)
+
+        receiptBatches[_batchHash] = ReceiptBatch({
+            batchHash: _batchHash,
+            releaseRootHash: _releaseRootHash,
+            blockNumber: block.number,
+            timestamp: block.timestamp,
+            receiptCount: _receiptCount
+        });
+
+        batchHashes.push(_batchHash);
+
+        emit ReceiptBatchAnchored(_batchHash, _releaseRootHash, _receiptCount, block.number, block.timestamp);
+        _logAudit("RECEIPT_BATCH_ANCHORED", _batchHash);
+    }
+
+    /**
+     * @notice Verify if a release is registered and valid
+     * @param _rootHash Root hash to verify
+     * @return registered Whether the release is registered
+     * @return revoked Whether the release has been revoked
+     * @return version Version string
+     * @return blockNumber Block number when registered
+     */
+    function verifyRelease(bytes32 _rootHash) external view returns (
+        bool registered,
+        bool revoked,
+        string memory version,
+        uint256 blockNumber
+    ) {
+        Release storage r = releases[_rootHash];
+        return (
+            r.blockNumber > 0,
+            r.revoked,
+            r.version,
+            r.blockNumber
+        );
+    }
+
+    /**
+     * @notice Get receipt batch info
+     * @param _batchHash Batch hash to lookup
+     */
+    function getReceiptBatch(bytes32 _batchHash) external view returns (
+        bytes32 releaseRootHash,
+        uint256 blockNumber,
+        uint256 timestamp,
+        uint256 receiptCount
+    ) {
+        ReceiptBatch storage b = receiptBatches[_batchHash];
+        return (
+            b.releaseRootHash,
+            b.blockNumber,
+            b.timestamp,
+            b.receiptCount
+        );
+    }
+
+    /**
+     * @notice Get all release hashes
+     */
+    function getAllReleaseHashes() external view returns (bytes32[] memory) {
+        return releaseHashes;
+    }
+
+    /**
+     * @notice Get all batch hashes
+     */
+    function getAllBatchHashes() external view returns (bytes32[] memory) {
+        return batchHashes;
+    }
+
+    /**
+     * @notice Get release count
+     */
+    function getReleaseCount() external view returns (uint256) {
+        return releaseHashes.length;
+    }
+
+    /**
+     * @notice Get batch count
+     */
+    function getBatchCount() external view returns (uint256) {
+        return batchHashes.length;
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -1,0 +1,34 @@
+{
+  "name": "@kai/cli",
+  "version": "0.1.0-beta",
+  "description": "KAI Release Builder CLI - Verifiable Governance for AI Agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "kai": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "kai": "tsx src/index.ts",
+    "demo": "tsx scripts/demo-runbook.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "ethers": "^6.11.0",
+    "yaml": "^2.3.4",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "dotenv": "^16.4.0"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

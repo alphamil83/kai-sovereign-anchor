@@ -1,0 +1,64 @@
+{
+  "manifest_version": "0.5",
+  "release_version": "0.5.0",
+  "created_at": "2026-02-03T18:14:39.706Z",
+  "builder_info": {
+    "cli_version": "0.5.0",
+    "git_commit": "6a5e2c5f866ae4094fb2ccb3317e8f6198cd03a1",
+    "built_at": "2026-02-03T18:14:39.706Z",
+    "node_version": "v22.22.0"
+  },
+  "files": [
+    {
+      "path": "constitution/core/kai_constitution_core_v1_4.txt",
+      "sha256": "0x77cae9b45b3ddc681ff58450289daf9d401908e5c53855d4c416fe99f31fd76e",
+      "size": 7143
+    },
+    {
+      "path": "constitution/manual/kai_operating_manual_v1_4.txt",
+      "sha256": "0xd2f9567a0d1bdefddddc6d16586e1ba75e05044c481e7ced038eac0961df6d5c",
+      "size": 13193
+    },
+    {
+      "path": "constitution/scenarios/kai_scenario_suite_v1_1.txt",
+      "sha256": "0x7f2252a935dae4b979253aa1f8e582d97e57aa234c0be3476bcfe44b28fabeb4",
+      "size": 31454
+    },
+    {
+      "path": "policy-engine/package-lock.json",
+      "sha256": "0xe8f79c7a7ee960b07957a19ae7c2835d9466c88d1a2acb47638d2caff900c29d",
+      "size": 144489
+    },
+    {
+      "path": "policy-engine/package.json",
+      "sha256": "0x3532663302185eb8dd70b5d9eea38d57226d23ff96fa44ae20d171b93d89a866",
+      "size": 538
+    },
+    {
+      "path": "policy-engine/src/index.ts",
+      "sha256": "0x6708904dc8881d5e5d7d364e3861bfe533896214867010a22bfffb2b28baa218",
+      "size": 816
+    },
+    {
+      "path": "policy-engine/src/PolicyEngine.ts",
+      "sha256": "0x470e696651590a53769e831ce6593506d4dd20819be9f8c963e467fad2687afb",
+      "size": 26245
+    },
+    {
+      "path": "policy-engine/src/types.ts",
+      "sha256": "0x32b475e97e95c874bfc047cd0bf47a059e8e92502932c1028cec9f673525fbb8",
+      "size": 9463
+    },
+    {
+      "path": "policy-engine/test/PolicyEngine.test.ts",
+      "sha256": "0x59cc8591618a3b276ea09d4175e785b6e07b6990ce5d35145bb714bf6c1576ff",
+      "size": 18447
+    },
+    {
+      "path": "policy-engine/tsconfig.json",
+      "sha256": "0xf3a80b0a6ac2092e814f61066748dc5dbe5d23eff8933c06c64f3827cfa8715c",
+      "size": 402
+    }
+  ],
+  "root_hash": "0x1b11e2c21390179015fac5632fa291bb682140fb21ba411ee7a6959f9651fd47"
+}
