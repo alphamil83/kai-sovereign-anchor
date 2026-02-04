@@ -34,17 +34,30 @@ kai verify-live -m manifest.json --rpc-url https://...
 
 ## Global Installation (One-Time Setup)
 
-Install the `kai` command globally for easy access:
+Install the `kai` command globally for easy access from anywhere.
+
+**From your cloned repo:**
 
 ```bash
-# Create directory and copy script
+# Navigate to your clone
+cd /path/to/kai-sovereign-anchor
+
+# Create local bin directory and install
 mkdir -p ~/.local/bin
-cp ~/KAI_dev/kai-sovereign-anchor/cli/bin/kai ~/.local/bin/kai
+cp cli/bin/kai ~/.local/bin/kai
 chmod +x ~/.local/bin/kai
 
-# Add to PATH (add to your ~/.zshrc for persistence)
+# Add to PATH (add this to ~/.bashrc, ~/.zshrc, or your shell config)
 export PATH="$HOME/.local/bin:$PATH"
 ```
+
+**Or set the repo location via environment variable:**
+
+```bash
+# Point to your clone location
+export KAI_REPO_ROOT="/path/to/kai-sovereign-anchor"
+```
+
 
 Now you can run from anywhere:
 
