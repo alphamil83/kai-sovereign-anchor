@@ -13,7 +13,8 @@
     "test": "vitest run",
     "kai": "tsx src/index.ts",
     "demo": "tsx scripts/demo-runbook.ts",
-    "demo:realchain": "tsx scripts/demo-runbook-realchain.ts --local"
+    "demo:realchain": "tsx scripts/demo-runbook-realchain.ts --local",
+    "demo:record": "CONTRACT_ADDRESS=${CONTRACT_ADDRESS:-0x5fbdb2315678afecb367f032d93f642f64180aa3} tsx scripts/demo-runbook-realchain.ts --local --proof-out ./DEMO_PROOF.md"
   },
   "dependencies": {
     "commander": "^12.0.0",

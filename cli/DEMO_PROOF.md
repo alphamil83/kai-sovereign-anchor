@@ -6,10 +6,10 @@ This document contains immutable proof of the KAI governance system functioning 
 
 | Property | Value |
 |----------|-------|
-| Demo Date | 2026-02-03T21:24:20.618Z |
+| Demo Date | 2026-02-04T01:19:08.373Z |
 | CLI Version | @kai/cli@0.1.0-beta |
 | Chain | Chain ID 31337 |
-| Contract Address | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| Contract Address | `0x5fbdb2315678afecb367f032d93f642f64180aa3` |
 
 ## Artifacts
 
@@ -19,9 +19,9 @@ This document contains immutable proof of the KAI governance system functioning 
 | Release anchor tx | `(already anchored)` |
 | Release anchor block | 4 |
 | Signer address | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` |
-| Receipt batch Merkle root | `0xc267d318ef4bc1098751a289a985a8ca2d7a449b6c4d1a398d891f2ca6fa351c` |
-| Receipt batch anchor tx | `0x763965c581e2fbefb085109ba6729c17deaf1dc3b046f2dcf4f43f84cf0da5a5` |
-| Receipt batch anchor block | 6 |
+| Receipt batch Merkle root | `0x22c5703b54318088e872ba82752f82024831b8ac8bd6196f96369e4686a9c17a` |
+| Receipt batch anchor tx | `0x1a6438366b2cf0d2ae51adf88f338b827d12560aa8cb883bf39092afdb2d5985` |
+| Receipt batch anchor block | 12 |
 
 ## Verification Statement
 
@@ -46,4 +46,4 @@ This document contains immutable proof of the KAI governance system functioning 
 
 ---
 
-**Generated**: 2026-02-03T21:24:20.618Z
+**Generated**: 2026-02-04T01:19:08.373Z

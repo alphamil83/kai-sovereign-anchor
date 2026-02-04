@@ -1,0 +1,140 @@
+#!/bin/bash
+set -euo pipefail
+
+# ============================================================================
+# KAI Sovereign Anchor CLI
+# Convergent Labs
+# ============================================================================
+
+VERSION="0.1.0-beta"
+REPO_ROOT="$HOME/KAI_dev/kai-sovereign-anchor"
+CLI_DIR="$REPO_ROOT/cli"
+RPC_URL="http://127.0.0.1:8545"
+CONTRACT_ADDRESS="0x5fbdb2315678afecb367f032d93f642f64180aa3"
+
+# Colors
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+
+print_banner() {
+    echo ""
+    echo -e "${BOLD}KAI Sovereign Anchor${RESET} v${VERSION}"
+    echo -e "${DIM}Convergent Labs${RESET}"
+    echo "────────────────────────────────────────"
+    echo ""
+}
+
+print_help() {
+    print_banner
+    echo "Usage: kai <command>"
+    echo ""
+    echo "Commands:"
+    echo "  demo     Run the real-chain demo and generate proof"
+    echo "  proof    Display the generated proof artifact"
+    echo "  status   Show environment status"
+    echo "  test     Run the test suite"
+    echo ""
+}
+
+check_anvil() {
+    if ! lsof -i :8545 > /dev/null 2>&1; then
+        echo -e "${RED}Error:${RESET} Anvil is not running on port 8545"
+        echo ""
+        echo "Start Anvil first:"
+        echo "  anvil"
+        echo ""
+        exit 1
+    fi
+}
+
+check_cli_dir() {
+    if [ ! -d "$CLI_DIR" ]; then
+        echo -e "${RED}Error:${RESET} CLI directory not found at $CLI_DIR"
+        exit 1
+    fi
+}
+
+cmd_demo() {
+    check_cli_dir
+    check_anvil
+
+    cd "$CLI_DIR"
+    clear
+    print_banner
+
+    CONTRACT_ADDRESS="$CONTRACT_ADDRESS" npm run demo:record
+}
+
+cmd_proof() {
+    check_cli_dir
+
+    local proof_file="$CLI_DIR/DEMO_PROOF.md"
+
+    if [ ! -f "$proof_file" ]; then
+        echo -e "${RED}Error:${RESET} No proof file found"
+        echo "Run 'kai demo' first to generate proof"
+        exit 1
+    fi
+
+    echo ""
+    head -60 "$proof_file"
+    echo ""
+}
+
+cmd_status() {
+    print_banner
+
+    echo "Environment:"
+    echo "  Repo:     $REPO_ROOT"
+    echo "  CLI:      $CLI_DIR"
+    echo "  Node:     $(node --version 2>/dev/null || echo 'not found')"
+    echo "  npm:      $(npm --version 2>/dev/null || echo 'not found')"
+    echo "  RPC:      $RPC_URL"
+    echo "  Contract: $CONTRACT_ADDRESS"
+    echo ""
+
+    if lsof -i :8545 > /dev/null 2>&1; then
+        echo -e "  Anvil:    ${GREEN}running${RESET}"
+    else
+        echo -e "  Anvil:    ${YELLOW}not running${RESET}"
+    fi
+    echo ""
+}
+
+cmd_test() {
+    check_cli_dir
+    cd "$CLI_DIR"
+    npm test
+}
+
+# Main
+case "${1:-}" in
+    demo)
+        cmd_demo
+        ;;
+    proof)
+        cmd_proof
+        ;;
+    status)
+        cmd_status
+        ;;
+    test)
+        cmd_test
+        ;;
+    help|--help|-h)
+        print_help
+        ;;
+    "")
+        print_help
+        ;;
+    *)
+        echo -e "${RED}Unknown command:${RESET} $1"
+        echo ""
+        print_help
+        exit 1
+        ;;
+esac
