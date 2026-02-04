@@ -32,6 +32,29 @@ kai executor start -m manifest.json
 kai verify-live -m manifest.json --rpc-url https://...
 ```
 
+## Global Installation (One-Time Setup)
+
+Install the `kai` command globally for easy access:
+
+```bash
+# Create directory and copy script
+mkdir -p ~/.local/bin
+cp ~/KAI_dev/kai-sovereign-anchor/cli/bin/kai ~/.local/bin/kai
+chmod +x ~/.local/bin/kai
+
+# Add to PATH (add to your ~/.zshrc for persistence)
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Now you can run from anywhere:
+
+```bash
+kai demo     # Run the demo
+kai proof    # Show the generated proof
+kai status   # Check environment
+kai test     # Run test suite
+```
+
 ## What's Enforced vs Best-Effort
 
 | Guarantee | Status |
